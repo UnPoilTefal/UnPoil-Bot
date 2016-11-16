@@ -1,0 +1,13 @@
+{
+  "name": "unpoil-bot",
+  "version": "1.0.0",
+  "description": "Bot discord",
+  "author": "UnPoilTefal",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "discord.js": "^10.0.1"
+  }
+}
