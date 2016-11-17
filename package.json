@@ -3,12 +3,16 @@
   "version": "1.0.0",
   "description": "Bot discord",
   "author": "UnPoilTefal",
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node index.js"
   },
   "private": true,
   "dependencies": {
-    "discord.js": "^10.0.1"
-  }
+    "discord.js": "9.3.x"
+  },
+  "engines": {
+    "node": "5.9.1"
+  },
+  "license": "MIT"
 }
