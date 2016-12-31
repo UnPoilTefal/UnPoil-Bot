@@ -13,6 +13,7 @@ client.on('message', message => {
 
 client.on('message', message => {
   if (message.content.startsWith("!wow")) {
+    console.log("!wow Request");
     var commande = message.content;
     var cmdtab = commande.split(" ");
     if(cmdtab.length == 2) {
@@ -25,13 +26,32 @@ client.on('message', message => {
         message.reply("Le format de la commande doit être !wow personnage-serveur");
       }
 
+    } else {
+      message.reply("Le format de la commande doit être !wow personnage-serveur");
     }
 
   }
 });
 
-client.login('MjQ4MzY1NjM0ODE4MTQ2MzA1.Cw3NSw.YAOsoPjgtphKyz78EzfQh1dTVV4');
+var apiKey = process.env.apiKey;
+if (isEmpty(apiKey)) {
+    console.log("Variable d'environnement apiKey manquante.");
+    client.destroy();
+    process.exit(1);
+} else {
+  client.login(apiKey);
+}
 
 process.on( 'SIGINT', function () {
+  console.log("SIGINT signal");
   client.destroy();
 });
+
+process.on('exit', function (){
+  console.log('Goodbye!');
+  client.destroy();
+});
+
+function isEmpty(value) {
+  return typeof value == 'string' && !value.trim() || typeof value == 'undefined' || value === null;
+}
