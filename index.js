@@ -2,6 +2,7 @@ var fs = require('fs');
 
 try {
 	var Discord = require("discord.js");
+	process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
 } catch (e){
 	console.log(e.stack);
 	console.log(process.version);
@@ -31,11 +32,13 @@ Permissions.checkPermission = function (user,permission){
 		var allowed = true;
 		try{
 			if(Permissions.global.hasOwnProperty(permission)){
+				console.log("Check permission : " + permission);
 				allowed = Permissions.global[permission] === true;
 			}
 		} catch(e){}
 		try{
 			if(Permissions.users[user.id].hasOwnProperty(permission)){
+				console.log("Check permission : " + user.id + " - " + permission);
 				allowed = Permissions.users[user.id][permission] === true;
 			}
 		} catch(e){}
@@ -79,15 +82,15 @@ var commands = {
 			var text = "current aliases:\n";                                                                                     for(var a in aliases){                                                                                                       if(typeof a === 'string')
 				text += a + " ";
 			}
-			msg.channel.sendMessage(text);
+			msg.channel.send(text);
 		}
 },
   "ping": {
         description: "responds pong, useful for checking if bot is alive",
         process: function(bot, msg, suffix) {
-            msg.channel.sendMessage( msg.author+" pong!");
+            msg.channel.send( msg.author+" pong!");
             if(suffix){
-                msg.channel.sendMessage( "note that !ping takes no arguments!");
+                msg.channel.send( "note that !ping takes no arguments!");
             }
         }
 },
@@ -118,7 +121,7 @@ var commands = {
 				if(secs > 0) {
 					timestr += secs + " seconds ";
 				}
-				msg.channel.sendMessage("**Uptime**: " + timestr);
+				msg.channel.send("**Uptime**: " + timestr);
 			}
     },
 	"wow": {
@@ -133,7 +136,7 @@ var commands = {
 					var userwowtab = userwow.split("-")
 					if(userwowtab.length == 2) {
 						var url = "http://eu.battle.net/wow/fr/character/" + encodeURIComponent(userwowtab[1]) + "/" + encodeURIComponent(userwowtab[0]) + "/advanced";
-						msg.channel.sendMessage("WOW Amory pour le personnage " + userwowtab[0] + " du serveur " + userwowtab[1] + "\n" + url);
+						msg.channel.send("WOW Amory pour le personnage " + userwowtab[0] + " du serveur " + userwowtab[1] + "\n" + url);
 					} else {
 						msg.reply("Le format de la commande doit être !wow personnage-serveur");
 					}
@@ -157,18 +160,18 @@ var commands = {
 					}
 					var stream = JSON.parse(body);
 					if(stream.stream){
-						msg.channel.sendMessage( suffix
+						msg.channel.send( suffix
 							+" is online, playing "
 							+stream.stream.game
 							+"\n"+stream.stream.channel.status
 							+"\n"+stream.stream.preview.large)
 					}else{
-						msg.channel.sendMessage( suffix+" is offline")
+						msg.channel.send( suffix+" is offline")
 					}
 				});
 			} catch (e) {
 				console.log("Erreur lors de la commande twitch ! " + e);
-				msg.channel.sendMessage("Commande twitch indisponible pour le moment.")
+				msg.channel.send("Commande twitch indisponible pour le moment.")
 			}
 
 		}
@@ -180,10 +183,10 @@ var commands = {
 		    var tags = suffix.split(" ");
 		    get_gif(tags, function(id) {
 			if (typeof id !== "undefined") {
-			    msg.channel.sendMessage( "http://media.giphy.com/media/" + id + "/giphy.gif [Tags: " + (tags ? tags : "Random GIF") + "]");
+			    msg.channel.send( "http://media.giphy.com/media/" + id + "/giphy.gif [Tags: " + (tags ? tags : "Random GIF") + "]");
 			}
 			else {
-			    msg.channel.sendMessage( "Invalid tags, try something different. [Tags: " + (tags ? tags : "Random GIF") + "]");
+			    msg.channel.send( "Invalid tags, try something different. [Tags: " + (tags ? tags : "Random GIF") + "]");
 			}
 		    });
 		}
@@ -201,7 +204,7 @@ function checkMessageForCommand(msg, isEdit) {
 				cmdTxt = msg.content.split(" ")[1];
 				suffix = msg.content.substring(bot.user.mention().length+cmdTxt.length+2);
 			} catch(e){ //no command
-				msg.channel.sendMessage("Oui ?");
+				msg.channel.send("Oui ?");
 				return;
 			}
         }
@@ -233,9 +236,9 @@ function checkMessageForCommand(msg, isEdit) {
 								}
 								info += "\n"
 							}
-							msg.channel.sendMessage(info);
+							msg.channel.send(info);
 						} else {
-							msg.author.sendMessage("**Available Commands:**").then(function(){
+							msg.author.send("**Available Commands:**").then(function(){
 								var batch = "";
 								var sortedCommands = Object.keys(commands).sort();
 								for(var i in sortedCommands) {
@@ -254,14 +257,14 @@ function checkMessageForCommand(msg, isEdit) {
 									}
 									var newBatch = batch + "\n" + info;
 									if(newBatch.length > (1024 - 8)){ //limit message length
-										msg.author.sendMessage(batch);
+										msg.author.send(batch);
 										batch = info;
 									} else {
 										batch = newBatch
 									}
 								}
 								if(batch.length > 0){
-									msg.author.sendMessage(batch);
+									msg.author.send(batch);
 								}
 						});
 					}
@@ -275,13 +278,13 @@ function checkMessageForCommand(msg, isEdit) {
 					if(Config.debug){
 						 msgTxt += "\n" + e.stack;
 					}
-					msg.channel.sendMessage(msgTxt);
+					msg.channel.send(msgTxt);
 				}
 			} else {
-				msg.channel.sendMessage("You are not allowed to run " + cmdTxt + "!");
+				msg.channel.send("You are not allowed to run " + cmdTxt + "!");
 			}
 		} else {
-			msg.channel.sendMessage(cmdTxt + " not recognized as a command!").then((message => message.delete(5000)))
+			msg.channel.send(cmdTxt + " not recognized as a command!").then((message => message.delete(5000)))
 		}
 	} else {
 		//message isn't a command or is from us
@@ -291,10 +294,8 @@ function checkMessageForCommand(msg, isEdit) {
         }
 
         if (msg.author != bot.user && msg.isMentioned(bot.user)) {
-                msg.channel.sendMessage(msg.author + ", vous m'avez appelé ?");
-        } else {
-
-				}
+                msg.channel.send(msg.author + ", vous m'avez appelé ?");
+        }
     }
 }
 
@@ -304,10 +305,15 @@ try{
 	//No aliases defined
 	aliases = {};
 }
-<!-- Init Bot -->
+// Init Bot
 const bot = new Discord.Client();
 
-<!-- Bot Managment -->
+bot.on('error', (error) => {
+	console.error("Erreur d'initialisation du client Discord : " + error.message);
+	process.exit(1);
+});
+
+// Bot Managment 
 bot.on('ready', () => {
   console.log("Logged in! Serving in " + bot.guilds.array().length + " servers");
 	console.log("type "+Config.commandPrefix+"help in Discord for a commands list.");
@@ -322,7 +328,7 @@ bot.on("messageUpdate", (oldMessage, newMessage) => {
 bot.on("disconnected", function () {
 
 	console.log("Disconnected!");
-	process.exit(1); //exit node.js with an error
+	process.exit(0); //exit node.js with an error
 
 });
 
@@ -377,7 +383,7 @@ function get_gif(tags, func) {
             }
         }.bind(this));
 }
-<!-- Process Managment -->
+// Process Managment
 process.on( 'SIGINT', function () {
   console.log("SIGINT signal");
   bot.destroy();
