@@ -4,5 +4,9 @@
     "pullanddeploy": false,
     "setUsername": false
   },
-  "users": {}
+  "users": {
+    "UnPoilTefal": {
+      "gif": true
+    }
+  }
 }
