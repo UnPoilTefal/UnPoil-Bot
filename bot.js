@@ -7,6 +7,7 @@ class UnPoilBot {
     constructor() {
         this.client = new Discord.Client();
         this.client.on('ready', this.ready.bind(this));
+        this.clientOn();
         this.commands = this.loadCommands();
         this.config = this.loadConfig();
 
@@ -19,30 +20,30 @@ class UnPoilBot {
         this.startTime = Date.now();
         this.discordApiKey = process.env.discordApiKey;
 
-
         this.giphy_config = {
             "api_key": "dc6zaTOxFJmzC",
             "rating": "r",
             "url": "http://api.giphy.com/v1/gifs/random",
             "permission": ["NORMAL"]
         };
-        this.clientOn();
+        
     }
 
     start() {
         process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
         console.log("Starting DiscordBot\nNode version: " + process.version + "\nDiscord.js version: " + Discord.version);
 
-
         this.checkApiKey();
+
         this.client.login(this.discordApiKey, (error) => {
             if (error) return console.log('[Login]' + error);
         });
     }
 
     ready() {
-        console.log("Logged in! Serving in " + this.client.guilds.array().length + " servers");
-        console.log("type " + this.config.commandPrefix + "help in Discord for a commands list.");
+        console.log(`Logged in as ${this.client.user.tag}!`);
+        console.log(`Serving in ${this.client.guilds.array().length} servers`);
+        console.log(`type  ${this.config.commandPrefix} help in Discord for a commands list.`);
         this.client.user.setStatus("online", this.config.commandPrefix + "help");
     }
 
@@ -62,7 +63,7 @@ class UnPoilBot {
                 Permissions.global[cmd] = false;
             }
         }
-        //fs.writeFile("./permissions.json", JSON.stringify(Permissions, null, 2));
+        fs.writeFile("./permissions.json", JSON.stringify(Permissions, null, 2));
         return Permissions;
     }
 
