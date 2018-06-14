@@ -63,7 +63,7 @@ class UnPoilBot {
                 Permissions.global[cmd] = false;
             }
         }
-        fs.writeFile("./permissions.json", JSON.stringify(Permissions, null, 2));
+        //fs.writeFile("./permissions.json", JSON.stringify(Permissions, null, 2));
         return Permissions;
     }
 
