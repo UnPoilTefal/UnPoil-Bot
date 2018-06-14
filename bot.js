@@ -299,7 +299,7 @@ class UnPoilBot {
                                 play(this.queue[msg.guild.id].songs.shift());
                             });
                         });
-                    })(this.queue[msg.guild.id].songs.shift());
+                    }.bind(this))(this.queue[msg.guild.id].songs.shift());
                 }.bind(this)
             },
             "add": {
