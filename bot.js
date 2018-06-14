@@ -1,6 +1,7 @@
 const Discord = require('discord.js');
 const qs = require('querystring');
 const fs = require('fs');
+const yt = require('ytdl-core');
 
 class UnPoilBot {
 
@@ -10,7 +11,7 @@ class UnPoilBot {
         this.clientOn();
         this.commands = this.loadCommands();
         this.config = this.loadConfig();
-
+        this.queue = {};
         // Load custom permissions
         this.dangerousCommands = ["eval", "pullanddeploy", "setUsername"];
         this.permissions = this.loadPermissions();
@@ -243,6 +244,107 @@ class UnPoilBot {
                     });
                 }
             },
+            "play": {
+                usage: "",
+                description: "Lance la lecture de la playlist",
+                process: function (bot, msg, suffix) {
+                    console.log("process -> play");
+                    if (msg.guild === null || this.queue[msg.guild.id] === undefined) {
+                        msg.channel.send(`Add some songs to the queue first with ${this.config.commandPrefix}add`);
+                        return; 
+                    } else {
+                        console.log("Queue OK");
+                    }
+                    if (!msg.guild.voiceConnection) return this.commands['join'].process(this.client, msg).then(() => this.commands['play'].process(this.client, msg, ''));
+                    if (this.queue[msg.guild.id].playing) return msg.channel.sendMessage('Already Playing');
+                    let dispatcher;
+                    this.queue[msg.guild.id].playing = true;
+
+                    console.log(this.queue);
+                    (function play(song) {
+                        console.log(song);
+                        if (song === undefined) return msg.channel.sendMessage('Queue is empty').then(() => {
+                            this.queue[msg.guild.id].playing = false;
+                            msg.member.voiceChannel.leave();
+                        });
+                        msg.channel.sendMessage(`Playing: **${song.title}** as requested by: **${song.requester}**`);
+                        dispatcher = msg.guild.voiceConnection.playStream(yt(song.url, { audioonly: true }), { passes: this.config.passes });
+                        let collector = msg.channel.createCollector(m => m);
+                        collector.on('message', m => {
+                            if (m.content.startsWith(this.config.commandPrefix + 'pause')) {
+                                msg.channel.sendMessage('paused').then(() => { dispatcher.pause(); });
+                            } else if (m.content.startsWith(this.config.commandPrefix + 'resume')) {
+                                msg.channel.sendMessage('resumed').then(() => { dispatcher.resume(); });
+                            } else if (m.content.startsWith(this.config.commandPrefix + 'skip')) {
+                                msg.channel.sendMessage('skipped').then(() => { dispatcher.end(); });
+                            } else if (m.content.startsWith('volume+')) {
+                                if (Math.round(dispatcher.volume * 50) >= 100) return msg.channel.sendMessage(`Volume: ${Math.round(dispatcher.volume * 50)}%`);
+                                dispatcher.setVolume(Math.min((dispatcher.volume * 50 + (2 * (m.content.split('+').length - 1))) / 50, 2));
+                                msg.channel.sendMessage(`Volume: ${Math.round(dispatcher.volume * 50)}%`);
+                            } else if (m.content.startsWith('volume-')) {
+                                if (Math.round(dispatcher.volume * 50) <= 0) return msg.channel.sendMessage(`Volume: ${Math.round(dispatcher.volume * 50)}%`);
+                                dispatcher.setVolume(Math.max((dispatcher.volume * 50 - (2 * (m.content.split('-').length - 1))) / 50, 0));
+                                msg.channel.sendMessage(`Volume: ${Math.round(dispatcher.volume * 50)}%`);
+                            } else if (m.content.startsWith(this.config.commandPrefix + 'time')) {
+                                msg.channel.sendMessage(`time: ${Math.floor(dispatcher.time / 60000)}:${Math.floor((dispatcher.time % 60000) / 1000) < 10 ? '0' + Math.floor((dispatcher.time % 60000) / 1000) : Math.floor((dispatcher.time % 60000) / 1000)}`);
+                            }
+                        });
+                        dispatcher.on('end', () => {
+                            collector.stop();
+                            play(this.queue[msg.guild.id].songs.shift());
+                        });
+                        dispatcher.on('error', (err) => {
+                            return msg.channel.sendMessage('error: ' + err).then(() => {
+                                collector.stop();
+                                play(this.queue[msg.guild.id].songs.shift());
+                            });
+                        });
+                    })(this.queue[msg.guild.id].songs.shift());
+                }.bind(this)
+            },
+            "add": {
+                usage: "<url youtube | id youtube>",
+                description: "Ajoute une chanson à la playlist",
+                process: function (bot, msg, suffix) {
+                    if (msg.guild === null) {
+                        msg.channel.send(`Vous devez êtres sur un canal commun pour ajouter une chanson`);
+                        return;
+                    }
+                    let url = msg.content.split(' ')[1];
+                    if (url == '' || url === undefined) return msg.channel.sendMessage(`You must add a YouTube video url, or id after ${this.config.commandPrefix}add`);
+                    yt.getInfo(url, (err, info) => {
+                        if (err) return msg.channel.sendMessage('Invalid YouTube Link: ' + err);
+                        if (!this.queue.hasOwnProperty(msg.guild.id)) {
+                            this.queue[msg.guild.id] = {};
+                            this.queue[msg.guild.id].playing = false;
+                            this.queue[msg.guild.id].songs = [];
+                        }
+                        this.queue[msg.guild.id].songs.push({ url: url, title: info.title, requester: msg.author.username });
+                        msg.channel.sendMessage(`added **${info.title}** to the queue`);
+                    });
+                }.bind(this)
+            },
+            "queue": {
+                usage: "",
+                description: "Affiche la playlist",
+                process: function (bot, msg, suffix) {
+                    if (this.queue[msg.guild.id] === undefined) return msg.channel.sendMessage(`Add some songs to the queue first with ${this.config.commandPrefix}add`);
+                    let tosend = [];
+                    this.queue[msg.guild.id].songs.forEach((song, i) => { tosend.push(`${i + 1}. ${song.title} - Requested by: ${song.requester}`); });
+                    msg.channel.sendMessage(`__**${msg.guild.name}'s Music Queue:**__ Currently **${tosend.length}** songs queued ${(tosend.length > 15 ? '*[Only next 15 shown]*' : '')}\n\`\`\`${tosend.slice(0, 15).join('\n')}\`\`\``);
+                }.bind(this)
+            },
+            "join": {
+                usage: "",
+                description: "Connect bot to your voice channel",
+                process: function (bot, msg, suffix) {
+                    return new Promise((resolve, reject) => {
+                        const voiceChannel = msg.member.voiceChannel;
+                        if (!voiceChannel || voiceChannel.type !== 'voice') return msg.reply('I couldn\'t connect to your voice channel...');
+                        voiceChannel.join().then(connection => resolve(connection)).catch(err => reject(err));
+                    });
+                }.bind(this)
+            },
         };
         return commands;
     }
@@ -382,6 +484,7 @@ class UnPoilBot {
                 msg.channel.send(msg.author + ", vous m'avez appelé ?");
             }
         }
+        console.log("End " + msg.content);
     }
 
     clientOn() {
