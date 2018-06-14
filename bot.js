@@ -19,6 +19,7 @@ class UnPoilBot {
 
         this.startTime = Date.now();
         this.discordApiKey = process.env.discordApiKey;
+        this.twitchClientId = process.env.twitchClientId;
 
         this.giphy_config = {
             "api_key": "dc6zaTOxFJmzC",
@@ -43,7 +44,7 @@ class UnPoilBot {
     ready() {
         console.log(`Logged in as ${this.client.user.tag}!`);
         console.log(`Serving in ${this.client.guilds.array().length} servers`);
-        console.log(`type  ${this.config.commandPrefix} help in Discord for a commands list.`);
+        console.log(`type  ${this.config.commandPrefix}help in Discord for a commands list.`);
         this.client.user.setStatus("online", this.config.commandPrefix + "help");
     }
 
@@ -202,7 +203,7 @@ class UnPoilBot {
                 process: function (bot, msg, suffix) {
                     try {
                         var request = require("request");
-                        request("https://api.twitch.tv/kraken/streams/" + suffix,
+                        request("https://api.twitch.tv/kraken/streams/" + suffix + "?client_id=" + this.twitchClientId,
                             function (err, res, body) {
                                 //Check for error
                                 if (err) {
@@ -211,12 +212,13 @@ class UnPoilBot {
                                 var stream = JSON.parse(body);
                                 if (stream.stream) {
                                     msg.channel.send(suffix
-                                        + " is online, playing "
+                                        + " est online, joue à "
                                         + stream.stream.game
                                         + "\n" + stream.stream.channel.status
-                                        + "\n" + stream.stream.preview.large)
+                                        + "\n" + stream.stream.preview.large);
+                                    msg.channel.send("Regarder " + suffix + " : " + "https://www.twitch.tv/" + suffix);
                                 } else {
-                                    msg.channel.send(suffix + " is offline")
+                                    msg.channel.send(suffix + " est offline")
                                 }
                             });
                     } catch (e) {
@@ -224,7 +226,7 @@ class UnPoilBot {
                         msg.channel.send("Commande twitch indisponible pour le moment.")
                     }
 
-                }
+                }.bind(this)
             },
             "gif": {
                 usage: "<image tags>",
