@@ -1,6 +1,6 @@
 FROM node:alpine
 
-RUN apk --update add git ffmpeg
+RUN apk --update add git ffmpeg python
 
 # Create app directory
 RUN mkdir -p /usr/src/app
